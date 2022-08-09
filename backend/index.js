@@ -1,4 +1,4 @@
-const { json } = require('express');
+
 const express=require('express');
 require('dotenv').config();
 const app=express();
@@ -9,8 +9,8 @@ const Person=require('./models/person');
 
 
 
-app.use(express.json());
 app.use(express.static('build'));
+app.use(express.json());
 
 const persons=[
     {
@@ -59,13 +59,13 @@ morgan(function (tokens, req, res) {
 /*morgan(':method :url :status :res[content-length] - :response-time ms');
 
 morgan.token('host', function(req, res) {
-    return req.hostname;
+  return req.hostname;
 });
 
 /*app.use(morgan(':method :host :status :param[id] :res[content-length] - :response-time ms'));
 
 morgan.token('param', function(req, res, param) {
-    return req.params[param];
+  return req.params[param];
 });*/
 
 
@@ -77,15 +77,6 @@ app.use(morgan(':method :url :status :response-time ms - :res[content-length] :b
 
 app.use(cors());
 
-const requestLogger = (request, response, next) => {
-  console.log('Method:', request.method)
-  console.log('Path:  ', request.path)
-  console.log('Body:  ', request.body)
-  console.log('---')
-  next()
-}
-
-app.use(requestLogger)
 
 app.get('/api/persons',(req,res)=>{
     Person.find({}).then(result=>{
@@ -150,14 +141,20 @@ app.get('/info',(req,res)=>{
     
      } )
 
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: 'unknown endpoint' })
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
 }
 
-app.use(unknownEndpoint)
+app.use(errorHandler)
 
 const PORT=process.env.PORT;
-app.listen(PORT,()=>{
-    console.log(`Server running on port ${PORT}`);
-}
-);
+app.listen(PORT)
+console.log(`Server running at http://localhost ${PORT}`);
+
